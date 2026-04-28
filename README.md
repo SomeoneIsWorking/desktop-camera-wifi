@@ -20,6 +20,22 @@ uv sync
 uv run main.py
 ```
 
+## Build macOS app
+
+```bash
+./scripts/install_app.sh
+```
+
+This script will:
+
+- sync the project with the `dev` dependency group
+- build `QR Mac.app` with PyInstaller through `uv`
+- inject the required camera usage description into the app bundle plist
+- re-sign the bundle after plist changes so macOS privacy prompts work
+- copy the built app into `/Applications`
+
+If macOS blocks camera access for the new app bundle, grant permission in System Settings and reopen it from `/Applications`.
+
 ## Wi-Fi QR support
 
 The app supports common Wi-Fi QR payloads such as:
