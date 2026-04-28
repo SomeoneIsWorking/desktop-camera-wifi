@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("QR Mac")
         self.resize(920, 700)
 
-        self.capture = cv2.VideoCapture(0)
+        self.capture = cv2.VideoCapture()
         self.scanner = QRScanner()
         self.last_payload = ""
         self.current_wifi: WifiConfig | None = None
@@ -60,8 +60,45 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)
 
-        if not self.capture.isOpened():
-            self.status_label.setText("Unable to open the default camera.")
+        self.retry_timer = QTimer(self)
+        self.retry_timer.setInterval(1000)
+        self.retry_timer.timeout.connect(self.retry_camera)
+
+        self.retry_camera()
+
+    def set_camera_unavailable(self, status_text: str, video_text: str) -> None:
+        self.status_label.setText(status_text)
+        self.video_label.setText(video_text)
+        if self.capture.isOpened():
+            self.capture.release()
+        if not self.retry_timer.isActive():
+            self.retry_timer.start()
+
+    def retry_camera(self) -> None:
+        if self.capture.isOpened():
+            self.retry_timer.stop()
+            return
+
+        self.capture = self.open_camera()
+        if self.capture.isOpened():
+            self.retry_timer.stop()
+            self.status_label.setText("Point the camera at a QR code.")
+            self.video_label.setText("")
+            return
+
+        self.set_camera_unavailable(
+            "Unable to open the default camera.",
+            "Unable to open the camera.\nIf permission was just granted, the app will retry automatically.",
+        )
+
+    def open_camera(self):
+        backends = [cv2.CAP_AVFOUNDATION, cv2.CAP_ANY]
+        for backend in backends:
+            capture = cv2.VideoCapture(0, backend)
+            if capture.isOpened():
+                return capture
+            capture.release()
+        return cv2.VideoCapture()
 
     def build_ui(self) -> None:
         wifi_group = QGroupBox("Wi-Fi QR")
@@ -92,7 +129,10 @@ class MainWindow(QMainWindow):
 
         ok, frame = self.capture.read()
         if not ok:
-            self.status_label.setText("Camera frame read failed.")
+            self.set_camera_unavailable(
+                "Camera frame read failed.",
+                "Camera opened but no frames arrived.\nThe app will keep retrying automatically.",
+            )
             return
 
         payload, points = self.scanner.detect(frame)

@@ -9,5 +9,10 @@ dependencies = [
     "PySide6==6.9.0",
 ]
 
+[dependency-groups]
+dev = [
+    "pyinstaller==6.16.0",
+]
+
 [tool.uv]
 package = false
