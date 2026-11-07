@@ -60,3 +60,5 @@ If the QR code represents an open network, the password is omitted.
 ## Tooling
 
 This project is set up for `uv`, including dependency resolution and command execution.
+
+Built with AI assistance (Claude and other LLMs).
